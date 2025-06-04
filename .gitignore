@@ -35,4 +35,7 @@ ENV/
 INPUT/*
 OUTPUT/*
 !INPUT/.gitkeep
-!OUTPUT/.gitkeep 
+!OUTPUT/.gitkeep
+
+# Large files
+*.db 
