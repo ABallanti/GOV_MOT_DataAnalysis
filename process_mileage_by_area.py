@@ -145,6 +145,7 @@ print("\nCalculating final statistics...")
 start_time = time.time()
 results_data = []
 vehicle_type_results = []
+fuel_type_results = []
 
 # Calculate overall area statistics
 for area, data in area_mileage_stats.items():
@@ -223,6 +224,7 @@ if results_data:
     output_file = 'OUTPUT/yearly_mileage_2023.csv'
     vehicle_type_output_file = 'OUTPUT/yearly_mileage_by_vehicle_type_2023.csv'
     fuel_type_output_file = 'OUTPUT/yearly_mileage_by_fuel_type_2023.csv'
+    
     results_df.to_csv(output_file, index=False)
     vehicle_type_df.to_csv(vehicle_type_output_file, index=False)
     fuel_type_df.to_csv(fuel_type_output_file, index=False)

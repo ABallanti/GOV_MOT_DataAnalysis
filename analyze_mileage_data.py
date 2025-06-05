@@ -7,14 +7,9 @@ import numpy as np
 plt.style.use('default')  # Using default style instead of seaborn
 sns.set_theme()  # This will set a nice seaborn theme without requiring the style
 
-def load_data():
-    """Load the processed mileage data"""
-    print("Loading data...")
-    return pd.read_csv('OUTPUT/yearly_mileage_by_vehicle_type_2023.csv')
-
 def plot_vehicle_counts(df):
-    """Plot the number of vehicles by type"""
-    print("\nPlotting vehicle counts by type...")
+    """Plot the number of vehicles by vehicle type"""
+    print("\nPlotting vehicle counts by vehicle type...")
     
     # Group by vehicle type and sum the counts
     vehicle_counts = df.groupby('vehicle_type')['vehicle_count'].sum().reset_index()
@@ -92,16 +87,21 @@ def plot_mileage_by_area(df):
         plt.savefig(f'OUTPUT/mileage_by_area_type_{v_type}.png')
         plt.close()
 
-def generate_summary_report(df):
+# Generate a summary report for the entire dataset
+def generate_summary_report(df, report_type='vehicle'):
     """Generate a summary report of the data"""
     print("\nGenerating summary report...")
     
     # Calculate total number of vehicles
     total_vehicles = df['vehicle_count'].sum()
     
-    
     # Calculate overall statistics
-    overall_stats = df.groupby('vehicle_type').agg({
+    if report_type == 'vehicle':
+        group_by = 'vehicle_type'
+    else:  # fuel type
+        group_by = 'fuel_type'
+        
+    overall_stats = df.groupby(group_by).agg({
         'vehicle_count': 'sum',
         'average_yearly_mileage': ['mean', 'min', 'max'],
         'min_yearly_mileage': 'min',
@@ -109,23 +109,27 @@ def generate_summary_report(df):
     }).round(2)
     
     # Save the report
-    with open('OUTPUT/summary_report.txt', 'w') as f:
-        f.write("Mileage Analysis Summary Report\n")
+    with open(f'OUTPUT/summary_report_{report_type}.txt', 'w') as f:
+        f.write(f"Mileage Analysis Summary Report - {report_type.title()}\n")
         f.write("==============================\n\n")
         f.write(f"Total number of vehicles: {total_vehicles:,}\n")
-        f.write("Statistics by Vehicle Type:\n")
+        f.write(f"Statistics by {report_type.title()}:\n")
         f.write(overall_stats.to_string())
     
-    print(f"Summary report saved to OUTPUT/summary_report.txt")
+    print(f"Summary report saved to OUTPUT/summary_report_{report_type}.txt")
 
 def main():
-    # Load the data
-    df = load_data()
+    # Load both datasets
+    vehicle_df = pd.read_csv('OUTPUT/yearly_mileage_by_vehicle_type_2023.csv')
+    fuel_df = pd.read_csv('OUTPUT/yearly_mileage_by_fuel_type_2023.csv')
     
-    # Generate visualizations and reports
-    plot_vehicle_counts(df)
-    plot_mileage_by_area(df)
-    generate_summary_report(df)
+    # Generate visualizations and reports for vehicle types
+    plot_vehicle_counts(vehicle_df)
+    plot_mileage_by_area(vehicle_df)
+    generate_summary_report(vehicle_df, 'vehicle')
+    
+    # Generate reports for fuel types
+    generate_summary_report(fuel_df, 'fuel')
     
     print("\nAnalysis complete! Check the OUTPUT directory for results.")
 
