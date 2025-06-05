@@ -29,11 +29,14 @@ start_time = time.time()
 total_rows = 0
 vehicles_processed = set()
 
+# Plotting the name of the columns of the csv file before processing
+print(pd.read_csv('INPUT/test_result_2023.csv', sep='|', nrows=0).columns)
+
 try:
     # First try with utf-8 encoding
     csv_reader = pd.read_csv('INPUT/test_result_2023.csv', 
                             sep='|',
-                            usecols=['vehicle_id', 'postcode_area', 'test_mileage', 'first_use_date', 'test_date', 'test_class_id'],
+                            usecols=['vehicle_id', 'postcode_area', 'test_mileage', 'first_use_date', 'test_date', 'test_class_id','fuel_type'],
                             chunksize=chunk_size,
                             encoding='utf-8',
                             on_bad_lines='skip')
@@ -41,7 +44,7 @@ except UnicodeDecodeError:
     print("UTF-8 encoding failed, trying with latin-1...")
     csv_reader = pd.read_csv('INPUT/test_result_2023.csv', 
                             sep='|',
-                            usecols=['vehicle_id', 'postcode_area', 'test_mileage', 'first_use_date', 'test_date', 'test_class_id'],
+                            usecols=['vehicle_id', 'postcode_area', 'test_mileage', 'first_use_date', 'test_date', 'test_class_id','fuel_type'],
                             chunksize=chunk_size,
                             encoding='latin-1',
                             on_bad_lines='skip')
@@ -84,6 +87,7 @@ for chunk in csv_reader:
     for _, row in chunk.iterrows():
         postcode = row['postcode_area']
         vehicle_type = row['test_class_id']
+        fuel_type = row['fuel_type']
         yearly_mileage = row['yearly_mileage']
         
         # Skip invalid values
@@ -95,7 +99,8 @@ for chunk in csv_reader:
             area_mileage_stats[postcode] = {
                 'vehicle_types': {},
                 'total_vehicles': 0,
-                'total_mileage': 0
+                'total_mileage': 0,
+                'fuel_types': {}
             }
         
         # Initialize vehicle type if not exists
@@ -103,7 +108,15 @@ for chunk in csv_reader:
             area_mileage_stats[postcode]['vehicle_types'][vehicle_type] = {
                 'yearly_mileages': [],
                 'vehicle_count': 0,
-                'total_mileage': 0
+                'total_mileage': 0,
+            }
+        
+        # Initialize fuel type if not exists
+        if fuel_type not in area_mileage_stats[postcode]['fuel_types']:
+            area_mileage_stats[postcode]['fuel_types'][fuel_type] = {
+                'yearly_mileages': [],
+                'vehicle_count': 0,
+                'total_mileage': 0,
             }
         
         # Add to statistics
@@ -111,6 +124,9 @@ for chunk in csv_reader:
         area_mileage_stats[postcode]['vehicle_types'][vehicle_type]['vehicle_count'] += 1
         area_mileage_stats[postcode]['vehicle_types'][vehicle_type]['total_mileage'] += yearly_mileage
         
+        area_mileage_stats[postcode]['fuel_types'][fuel_type]['vehicle_count'] += 1
+        area_mileage_stats[postcode]['fuel_types'][fuel_type]['total_mileage'] += yearly_mileage
+
         area_mileage_stats[postcode]['total_vehicles'] += 1
         area_mileage_stats[postcode]['total_mileage'] += yearly_mileage
     
@@ -130,11 +146,12 @@ start_time = time.time()
 results_data = []
 vehicle_type_results = []
 
+# Calculate overall area statistics
 for area, data in area_mileage_stats.items():
     if data['total_vehicles'] == 0:
         continue
     
-    # Calculate overall area statistics
+    # Calculate average yearly mileage for the area
     avg_mileage = data['total_mileage'] / data['total_vehicles']
     
     # Collect all yearly mileages for the area
@@ -173,11 +190,31 @@ for area, data in area_mileage_stats.items():
             'vehicle_count': type_data['vehicle_count']
         })
 
+    # Calculate fuel type statistics
+    for fuel_type, fuel_data in data['fuel_types'].items():
+        if fuel_data['vehicle_count'] == 0:
+            continue
+    
+        fuel_mileages = np.array(fuel_data['total_mileage'])
+        avg_fuel_mileage = fuel_mileages.sum()/fuel_data['vehicle_count']
+                
+        fuel_type_results.append({
+            'postcode_area': area,
+            'fuel_type': fuel_type,
+            'average_yearly_mileage': avg_fuel_mileage,
+            'min_yearly_mileage': np.min(fuel_mileages),
+            'max_yearly_mileage': np.max(fuel_mileages),
+            'vehicle_count': fuel_data['vehicle_count'],
+            'total_mileage': fuel_data['total_mileage'],
+            'percentile_5': np.percentile(fuel_mileages, 5),
+            'percentile_95': np.percentile(fuel_mileages, 95)
+        })
+
 # Create DataFrames and save results
 if results_data:
     results_df = pd.DataFrame(results_data)
     vehicle_type_df = pd.DataFrame(vehicle_type_results)
-    
+    fuel_type_df = pd.DataFrame(fuel_type_results)
     # Sort results
     results_df = results_df.sort_values('average_yearly_mileage', ascending=False)
     vehicle_type_df = vehicle_type_df.sort_values(['postcode_area', 'average_yearly_mileage'], ascending=[True, False])
@@ -185,12 +222,14 @@ if results_data:
     # Save results
     output_file = 'OUTPUT/yearly_mileage_2023.csv'
     vehicle_type_output_file = 'OUTPUT/yearly_mileage_by_vehicle_type_2023.csv'
-    
+    fuel_type_output_file = 'OUTPUT/yearly_mileage_by_fuel_type_2023.csv'
     results_df.to_csv(output_file, index=False)
     vehicle_type_df.to_csv(vehicle_type_output_file, index=False)
-    
+    fuel_type_df.to_csv(fuel_type_output_file, index=False)
+
     print(f"\nResults saved to {output_file}")
     print(f"Vehicle type statistics saved to {vehicle_type_output_file}")
+    print(f"Fuel type statistics saved to {fuel_type_output_file}")
     
     # Print summary statistics
     print("\nProcessing complete!")
@@ -202,6 +241,10 @@ if results_data:
     # Print vehicle type statistics sample
     print(f"\nSample of vehicle type statistics for first 5 postcode areas:")
     print(vehicle_type_df.head(10).to_string())
+    
+    # Print fuel type statistics sample
+    print(f"\nSample of fuel type statistics for first 5 postcode areas:")
+    print(fuel_type_df.head(10).to_string())
     
     # Print overall statistics
     print(f"\nOverall Statistics (2023):")
