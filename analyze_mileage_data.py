@@ -35,6 +35,34 @@ def plot_vehicle_counts(df):
     plt.savefig('OUTPUT/vehicle_counts_by_type.png')
     plt.close()
 
+def plot_fuel_counts(df):
+    """Plot the number of vehicles by fuel type"""
+    print("\nPlotting vehicle counts by fuel type...")
+    
+    # Group by fuel type and sum the counts
+    fuel_counts = df.groupby('fuel_type')['vehicle_count'].sum().reset_index()
+    
+    # Create the plot
+    plt.figure(figsize=(12, 6))
+    bars = plt.bar(fuel_counts['fuel_type'], fuel_counts['vehicle_count'])
+    
+    # Add value labels on top of each bar
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2., height,
+                f'{int(height):,}',
+                ha='center', va='bottom')
+    
+    plt.title('Number of Vehicles by Fuel Type')
+    plt.xlabel('Fuel Type')
+    plt.ylabel('Number of Vehicles')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    
+    # Save the plot
+    plt.savefig('OUTPUT/vehicle_counts_by_fuel.png')
+    plt.close()
+
 def plot_mileage_by_area(df):
     """Plot average, max, min mileage by postcode area for each vehicle type"""
     print("\nPlotting mileage statistics by area...")
@@ -128,7 +156,8 @@ def main():
     plot_mileage_by_area(vehicle_df)
     generate_summary_report(vehicle_df, 'vehicle')
     
-    # Generate reports for fuel types
+    # Generate visualizations and reports for fuel types
+    plot_fuel_counts(fuel_df)
     generate_summary_report(fuel_df, 'fuel')
     
     print("\nAnalysis complete! Check the OUTPUT directory for results.")

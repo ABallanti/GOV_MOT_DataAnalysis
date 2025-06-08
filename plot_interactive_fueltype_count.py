@@ -1,3 +1,7 @@
+# This script creates an interactive map of the number of vehicles by fuel type in the UK
+# It uses the postcode areas shapefile and the vehicle count data
+# The map is saved as an HTML file
+
 import geopandas as gpd
 import folium
 from folium import GeoJson
@@ -23,7 +27,7 @@ import numpy as np
 # Steam (ST)
 
 # Configuration - Change this value to show different fuel types
-FUEL_TYPE = 'PE'  # Options: 'CN', 'DI', 'ED', 'EL', 'FC', 'GA', 'GB', 'GD', 'HY', 'LN', 'LP', 'OT', 'PE', 'ST'
+FUEL_TYPE = 'EL'  # Options: 'CN', 'DI', 'ED', 'EL', 'FC', 'GA', 'GB', 'GD', 'HY', 'LN', 'LP', 'OT', 'PE', 'ST'
 
 # Dictionary of fuel types and their descriptions
 FUEL_TYPES = {
